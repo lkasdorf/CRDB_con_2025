@@ -208,3 +208,8 @@ __marimo__/
  
  # Project data
  files/
+ 
+ # CRDB project specific
+ source/*.xls
+ converted/*.csv
+ converted/*.log
