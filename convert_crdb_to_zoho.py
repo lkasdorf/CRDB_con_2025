@@ -546,7 +546,7 @@ def main() -> None:
     parser.add_argument("--currency", default=None, help="Currency code or symbol to strip from amounts (optional)")
     # CSV output formatting
     parser.add_argument("--encoding", dest="csv_encoding", default="utf-8", help="CSV file encoding (default utf-8)")
-    parser.add_argument("--quotechar", dest="csv_quotechar", default='"', help="CSV quote character (default '"')")
+    parser.add_argument("--quotechar", dest="csv_quotechar", default='"', help='CSV quote character (default ")')
     parser.add_argument("--no-header", dest="csv_no_header", action="store_true", help="Write CSV without header row")
     # Redaction
     parser.add_argument("--redact", action="store_true", help="Mask sensitive fields in outputs (reports/logs/CSV)")
