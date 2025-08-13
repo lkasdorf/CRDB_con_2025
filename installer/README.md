@@ -68,7 +68,7 @@ iscc crdb-converter-setup.iss
 
 The installer will be created in the `dist/` directory as:
 ```
-crdb-converter-setup-0.2.7.exe
+crdb-converter-setup-0.2.8.exe
 ```
 
 ## ✨ Installer Features
@@ -98,7 +98,7 @@ crdb-converter-setup-0.2.7.exe
 To update the version, modify these lines in `crdb-converter-setup.iss`:
 
 ```pascal
-#define MyAppVersion "0.2.7"
+#define MyAppVersion "0.2.8"
 ```
 
 ### Company Information

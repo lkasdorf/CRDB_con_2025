@@ -400,7 +400,7 @@ crdb-convert.exe --help
 cd installer
 .\build-installer.ps1
 
-# The installer will be created in dist/crdb-converter-setup-0.2.7.exe
+# The installer will be created in dist/crdb-converter-setup-0.2.8.exe
 # It automatically handles PATH modification and creates Start Menu shortcuts
 ```
 

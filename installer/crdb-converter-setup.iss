@@ -7,7 +7,7 @@
 ; - Provides uninstall capability
 
 #define MyAppName "CRDB Zoho Converter"
-#define MyAppVersion "0.2.6"
+#define MyAppVersion "0.2.8"
 #define MyAppPublisher "Leon Kasdorf"
 #define MyAppURL "https://github.com/lkasdorf/CRDB_con_2025"
 #define MyAppExeName "crdb-convert.exe"
