@@ -1,0 +1,2 @@
+# This file ensures the source directory is tracked in git even when empty
+# CRDB bank statement XLS files should be placed here for batch conversion
