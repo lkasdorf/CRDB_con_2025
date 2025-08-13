@@ -277,7 +277,7 @@ crdb-convert.exe --help
 Invoke-WebRequest -Uri https://github.com/lkasdorf/CRDB_con_2025/releases/download/vX.Y.Z/crdb-inspect.exe -OutFile "$env:USERPROFILE\bin\crdb-inspect.exe"
 ```
 
-**💡 Pro Tip:** Replace `vX.Y.Z` with the actual release version (e.g., `v0.2.4`) from the GitHub Releases page.
+**💡 Pro Tip:** Replace `vX.Y.Z` with the actual release version (e.g., `v0.2.5`) from the GitHub Releases page.
 
 ### GitHub Release Assets
 Each release includes:
@@ -286,7 +286,7 @@ Each release includes:
 - **Linux/macOS binaries** (`crdb-convert`) - standalone, no Python required
 - **Release notes** with changelog and installation instructions
 
-**Latest Release:** [v0.2.4](https://github.com/lkasdorf/CRDB_con_2025/releases/latest)
+**Latest Release:** [v0.2.5](https://github.com/lkasdorf/CRDB_con_2025/releases/latest)
 
 ### Add to PATH (so you can run `crdb-convert` from anywhere)
 
