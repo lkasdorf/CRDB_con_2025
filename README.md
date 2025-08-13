@@ -62,6 +62,73 @@ python3 convert_crdb_to_zoho.py -i files/crdb_input.xls -o converted/crdb_input.
 ```
 5) Import the generated CSV(s) from `converted/` into Zoho Books.
 
+### Installation (lokal/standalone)
+
+Variante A: Installation in eine virtuelle Umgebung (empfohlen)
+- Windows (PowerShell): siehe Abschnitt "Setup". Danach:
+```powershell
+pip install -e .
+```
+- Linux/macOS:
+```bash
+pip install -e .
+```
+Danach stehen die Befehle `crdb-convert` und `crdb-inspect` direkt im PATH zur Verfügung.
+
+Variante B: Installation systemweit via pipx (sauber, isoliert)
+- Voraussetzung: `pipx` installieren (`pip install pipx` und `pipx ensurepath`).
+```bash
+pipx install .
+```
+Nun können Sie die Tools global nutzen: `crdb-convert --help`.
+
+Variante C: Ohne Build, direkt per Python ausführen (ohne Installation)
+```bash
+python3 convert_crdb_to_zoho.py --source source --dest converted
+```
+
+Optional: Standalone-Binary bauen (ohne Python auf Zielsystem)
+- PyInstaller installieren und Binary erstellen:
+```bash
+pip install pyinstaller
+pyinstaller --onefile --name crdb-convert convert_crdb_to_zoho.py
+pyinstaller --onefile --name crdb-inspect _inspect_xls.py
+```
+Die erzeugten Binärdateien finden Sie unter `dist/` (`crdb-convert`, `crdb-inspect`). Diese sind pro OS/Arch spezifisch.
+
+Nach Installation/Build:
+- Hilfe anzeigen: `crdb-convert --help`
+- Beispiele siehe "Usage" und "CLI options".
+
+### PATH einrichten (damit `crdb-convert` überall läuft)
+
+- Virtuelle Umgebung (empfohlen): Durch Aktivieren der venv wird deren `Scripts` (Windows) bzw. `bin` (Linux/macOS) automatisch dem PATH hinzugefügt.
+  - Windows (PowerShell): `\.venv\Scripts\Activate.ps1`
+  - Linux/macOS (bash/zsh): `source .venv/bin/activate`
+
+- pipx (global, isoliert): Führen Sie einmal `pipx ensurepath` aus und starten Sie Ihr Terminal neu.
+  - Prüfen: `which crdb-convert` (Linux/macOS) bzw. `where crdb-convert` (Windows)
+
+- pip --user (falls verwendet): Stellen Sie sicher, dass das Benutzer-Bin-Verzeichnis im PATH ist.
+  - Linux/macOS: `~/.local/bin` (ggf. in `~/.bashrc`/`~/.zshrc` ergänzen)
+    ```bash
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+    source ~/.bashrc
+    ```
+  - Windows: Ermitteln Sie die User-Base: `py -m site --user-base` bzw. `python -m site --user-base`.
+    Fügen Sie den `Scripts`-Unterordner dieser Base dem PATH hinzu (z. B. `%USERPROFILE%\AppData\Roaming\Python\Python311\Scripts`).
+
+- PyInstaller-Binaries: Legen Sie die erzeugten Dateien aus `dist/` in ein Verzeichnis, das bereits im PATH liegt, oder ergänzen Sie PATH entsprechend.
+  - Linux/macOS (temporär für aktuelle Session):
+    ```bash
+    export PATH="$(pwd)/dist:$PATH"
+    ```
+  - Linux/macOS (dauerhaft): in `~/.bashrc`/`~/.zshrc` analog ergänzen.
+  - Windows (PowerShell, dauerhaft): Systemsteuerung → Umgebungsvariablen → PATH → `...\dist` hinzufügen. Alternativ (mit Vorsicht):
+    ```powershell
+    setx PATH "$env:PATH;$(Get-Location)\dist"
+    ```
+
 ### CLI options
 All flags are optional; defaults are chosen to work out-of-the-box with typical CRDB exports.
 
