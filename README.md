@@ -1,6 +1,6 @@
 ## CRDB → ZOHO Books Converter
 
-Converts CRDB bank statements (XLS) into the CSV format that can be imported into Zoho Books.
+Converts CRDB bank statements (XLS/XLSX) into the CSV format that can be imported into Zoho Books.
 
 ### Contents
 - `convert_crdb_to_zoho.py`: CLI script for conversion
@@ -11,6 +11,7 @@ Converts CRDB bank statements (XLS) into the CSV format that can be imported int
 - Python 3.11 (or compatible)
 - Windows PowerShell (examples below use PowerShell paths)
 - Linux/macOS shells are supported (examples provided)
+ - Dependencies: see `requirements.txt` (includes `pandas`, `xlrd`, `openpyxl`)
 
 ### Setup (recommended with virtual environment)
 Windows (PowerShell):
@@ -61,6 +62,39 @@ python3 convert_crdb_to_zoho.py -i files/crdb_input.xls -o converted/crdb_input.
 ```
 5) Import the generated CSV(s) from `converted/` into Zoho Books.
 
+### CLI options
+All flags are optional; defaults are chosen to work out-of-the-box with typical CRDB exports.
+
+- `-i, --input PATH`: Einzeldatei-Eingabe (XLS/XLSX).
+- `-o, --output PATH`: Ausgabedatei (CSV) in Einzeldatei-Modus. Standard: `<dest>/<input_stem>.csv`.
+- `--source PATH`: Quellverzeichnis für Batch-Modus. Standard: `source/`.
+- `--dest PATH`: Ausgabeverzeichnis für Batch-Modus. Standard: `converted/`.
+- `--log PATH`: Pfad zur Logdatei. Standard: `<dest>/conversion.log`.
+- `--force`: Existierende Ziel-CSV überschreiben.
+
+- `--strict`: Abbruch bei Parsing-/Validierungswarnungen.
+- `--dry-run`: Nur validieren und berichten, keine CSV schreiben.
+- `--delimiter ";"`: CSV-Separator (Standard `;`).
+- `--max-scan-rows 500`: Max. Zeilen für Headersuche.
+- `--engine auto|xlrd|openpyxl`: Excel-Engine. Standard: `auto`.
+- `--trace`: Detailliertes DEBUG-Tracing in Logs aktivieren.
+- `--trace-max-rows 20`: Anzahl getracter Zeilen.
+
+Mapping (Spaltenzuordnung):
+- `--map-file PATH`: JSON mit Mapping-Konfiguration (siehe unten).
+- `--map-posting STR`: Override für Buchungsdatum-Spalte.
+- `--map-details STR`: Override für Details/Narration-Spalte.
+- `--map-debit STR`: Override für Debit-Spalte.
+- `--map-credit STR`: Override für Credit-Spalte.
+
+Diagnose-Reports:
+- `--report PATH`: Per-Row-Diagnose-CSV im Einzeldatei-Modus.
+- `--report-dir PATH`: Verzeichnis für Per-Row-Diagnose-CSV je Datei im Batch-Modus (Dateiname: `<stem>.report.csv`).
+
+Hinweise:
+- Unterstützt `.xls` und `.xlsx`. Für `.xlsx` wird `openpyxl` verwendet.
+- Logdatei wird standardmäßig unter `<dest>/conversion.log` geschrieben.
+
 ### Target format (CSV)
 Semicolon-separated (;) with this header:
 ```
@@ -71,6 +105,33 @@ Notes:
 - Dates are output as `YYYY-MM-DD`.
 - Amounts are decimals with a dot (e.g., `212.40`).
 - `Payee` remains empty, `Description` defaults to `Transfer`, `Reference Number` contains the CRDB details/narration.
+
+### Mapping configuration
+Mapping kann die Auswahl der Eingabespalten steuern. Beispiel `mapping.json`:
+```json
+{
+  "posting_date": ["Posting Date", "Transaction Date"],
+  "details": ["Details", "Narration", "Description"],
+  "debit": ["Debit", "Withdrawal"],
+  "credit": ["Credit", "Deposit"]
+}
+```
+
+Anmerkungen:
+- Werte können String oder Liste sein. Die Suche vergleicht case-insensitive, zuerst exakt, dann als Teilstring. Fallback-Heuristik bleibt aktiv.
+- CLI-Overrides (`--map-*`) haben Vorrang vor der Datei.
+
+### Diagnostics und Validierung
+Der Konverter sammelt Validierungs- und Parsing-Warnungen und protokolliert Beispiele. Bei `--strict` wird mit Fehler abgebrochen.
+
+Mögliche Issues je Zeile (wichtig für den Report):
+- `date_unparsed`: Datum konnte nicht geparst werden.
+- `debit_unparsed`, `credit_unparsed`: Beträge nicht interpretierbar, obwohl Ziffern vorhanden.
+- `both_amounts`: Debit und Credit gleichzeitig > 0.
+- `negative_debit`, `negative_credit`: Negative Beträge erkannt.
+- `date_missing_with_amount`: Betrag vorhanden, aber Datum leer.
+
+Per-Row-Diagnose kann optional als CSV erzeugt werden (`--report`/`--report-dir`).
 
 ### Helper script (optional)
 Shows header candidate(s) and sample rows from the XLS file – useful if the CRDB layout changes:
