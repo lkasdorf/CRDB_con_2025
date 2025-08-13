@@ -465,7 +465,7 @@ Each release includes:
 - **Linux/macOS binaries** (`crdb-convert`) - standalone, no Python required
 - **Release notes** with changelog and installation instructions
 
-**Latest Release:** [v0.2.7](https://github.com/lkasdorf/CRDB_con_2025/releases/latest)
+**Latest Release:** [v0.2.8](https://github.com/lkasdorf/CRDB_con_2025/releases/latest)
 
 ### Professional Windows Installer
 For Windows users who prefer a traditional installer:
@@ -480,7 +480,7 @@ cd installer
 .\build-installer.ps1
 ```
 
-**Download:** [crdb-converter-setup-0.2.7.exe](https://github.com/lkasdorf/CRDB_con_2025/releases/latest)
+**Download:** [crdb-converter-setup-0.2.8.exe](https://github.com/lkasdorf/CRDB_con_2025/releases/latest)
 
 ### Add to PATH (so you can run `crdb-convert` from anywhere)
 
