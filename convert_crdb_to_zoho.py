@@ -167,14 +167,18 @@ def _select_column_with_mapping(columns: List[str], mapping_values: List[str], f
 
 def _read_excel_with_fallback(input_path: Path, engine_choice: str, sheet: Any = None) -> pd.DataFrame:
     suffix = input_path.suffix.lower()
+    
+    # Ensure we always get a DataFrame, not a dict of DataFrames
+    sheet_to_read = sheet if sheet is not None else 0
+    
     if engine_choice == "xlrd":
         try:
-            return pd.read_excel(input_path, engine="xlrd", header=None, dtype=str, sheet_name=sheet)
+            return pd.read_excel(input_path, engine="xlrd", header=None, dtype=str, sheet_name=sheet_to_read)
         except Exception as exc:  # noqa: BLE001
             raise ReadFileError(f"Failed reading {input_path} with xlrd: {exc}")
     if engine_choice == "openpyxl":
         try:
-            return pd.read_excel(input_path, engine="openpyxl", header=None, dtype=str, sheet_name=sheet)
+            return pd.read_excel(input_path, engine="openpyxl", header=None, dtype=str, sheet_name=sheet_to_read)
         except ImportError as exc:
             raise ReadFileError(
                 f"openpyxl is required to read {input_path}. Install with 'pip install openpyxl'. ({exc})"
@@ -185,7 +189,7 @@ def _read_excel_with_fallback(input_path: Path, engine_choice: str, sheet: Any =
     # auto engine selection
     if suffix in {".xlsx", ".xlsm", ".xltx", ".xltm"}:
         try:
-            return pd.read_excel(input_path, engine="openpyxl", header=None, dtype=str, sheet_name=sheet)
+            return pd.read_excel(input_path, engine="openpyxl", header=None, dtype=str, sheet_name=sheet_to_read)
         except ImportError as exc:
             raise ReadFileError(
                 f"openpyxl is required to read {input_path}. Install with 'pip install openpyxl'. ({exc})"
@@ -193,16 +197,16 @@ def _read_excel_with_fallback(input_path: Path, engine_choice: str, sheet: Any =
         except Exception as exc_openpyxl:  # noqa: BLE001
             logging.warning("openpyxl failed for %s: %s. Trying engine=None as fallback.", input_path, exc_openpyxl)
             try:
-                return pd.read_excel(input_path, engine=None, header=None, dtype=str, sheet_name=sheet)
+                return pd.read_excel(input_path, engine=None, header=None, dtype=str, sheet_name=sheet_to_read)
             except Exception as exc_none:  # noqa: BLE001
                 raise ReadFileError(f"Failed reading {input_path} with auto engine: {exc_none}")
     # legacy .xls
     try:
-        return pd.read_excel(input_path, engine="xlrd", header=None, dtype=str, sheet_name=sheet)
+        return pd.read_excel(input_path, engine="xlrd", header=None, dtype=str, sheet_name=sheet_to_read)
     except Exception as exc_xlrd:  # noqa: BLE001
         logging.warning("xlrd failed for %s: %s. Trying engine=None as fallback.", input_path, exc_xlrd)
         try:
-            return pd.read_excel(input_path, engine=None, header=None, dtype=str, sheet_name=sheet)
+            return pd.read_excel(input_path, engine=None, header=None, dtype=str, sheet_name=sheet_to_read)
         except Exception as exc_none:  # noqa: BLE001
             raise ReadFileError(f"Failed reading {input_path} with auto engine: {exc_none}")
 

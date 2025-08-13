@@ -22,7 +22,7 @@ def main() -> None:
         engine = "openpyxl"
 
     # Read without header to scan for the real header row inside the sheet
-    xl = pd.read_excel(source_path, engine=engine, header=None, dtype=str, sheet_name=args.sheet)
+    xl = pd.read_excel(source_path, engine=engine, header=None, dtype=str, sheet_name=args.sheet or 0)
     print("Shape:", xl.shape)
 
     # Heuristics: look for typical header combinations
