@@ -16,6 +16,7 @@ Converts CRDB bank statements (XLS/XLSX) into the CSV format that can be importe
 ### Quick start
 Linux/macOS (bash/zsh):
 ```bash
+git clone <REPO_URL> && cd CRDB_con_2025
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .
@@ -32,6 +33,8 @@ crdb-convert --source source --dest converted --map-file mapping.json --report-d
 
 Windows (PowerShell):
 ```powershell
+git clone <REPO_URL>
+Set-Location .\CRDB_con_2025
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -e .
