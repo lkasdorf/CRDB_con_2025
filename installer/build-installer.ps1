@@ -4,7 +4,7 @@
 
 param(
     [switch]$Silent,
-    [string]$Version = "0.2.5"
+    [string]$Version = "0.2.6"
 )
 
 # Set error action preference

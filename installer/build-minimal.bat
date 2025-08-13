@@ -2,7 +2,7 @@
 echo CRDB Converter Installer Builder
 echo ========================================
 
-REM Check if Inno Setup is installed
+echo Checking Inno Setup...
 where iscc >nul 2>&1
 if %errorlevel% neq 0 (
     echo ERROR: Inno Setup (iscc) not found in PATH
@@ -14,7 +14,7 @@ if %errorlevel% neq 0 (
 echo Found Inno Setup
 echo.
 
-REM Check if executables exist
+echo Checking executables...
 if not exist "..\dist\crdb-convert.exe" (
     echo ERROR: crdb-convert.exe not found in ..\dist\
     echo Please build the executables first using PyInstaller
@@ -32,16 +32,13 @@ if not exist "..\dist\crdb-inspect.exe" (
 echo Found executables
 echo.
 
-REM Build the installer
 echo Building installer...
 iscc crdb-converter-setup.iss
 
 if %errorlevel% equ 0 (
-    echo.
     echo SUCCESS: Installer built successfully!
-    echo Output: ..\dist\crdb-converter-setup-0.2.6.exe
+    echo Output: ..\dist\crdb-converter-setup-0.2.5.exe
 ) else (
-    echo.
     echo ERROR: Failed to build installer
 )
 

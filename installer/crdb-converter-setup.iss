@@ -7,7 +7,7 @@
 ; - Provides uninstall capability
 
 #define MyAppName "CRDB Zoho Converter"
-#define MyAppVersion "0.2.5"
+#define MyAppVersion "0.2.6"
 #define MyAppPublisher "Leon Kasdorf"
 #define MyAppURL "https://github.com/lkasdorf/CRDB_con_2025"
 #define MyAppExeName "crdb-convert.exe"
@@ -31,13 +31,21 @@ LicenseFile=..\LICENSE
 InfoBeforeFile=..\README.md
 OutputDir=..\dist
 OutputBaseFilename=crdb-converter-setup-{#MyAppVersion}
-SetupIconFile=..\installer\icon.ico
+; SetupIconFile=..\installer\icon.ico
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=lowest
 ; Require admin rights for PATH modification
 PrivilegesRequiredOverridesAllowed=dialog
+
+; Version info for the installer
+VersionInfoVersion={#MyAppVersion}
+VersionInfoCompany={#MyAppPublisher}
+VersionInfoDescription=CRDB Zoho Converter Installer
+VersionInfoCopyright=Copyright (C) 2025 {#MyAppPublisher}
+VersionInfoProductName={#MyAppName}
+VersionInfoProductVersion={#MyAppVersion}
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -144,12 +152,4 @@ english.ViewREADME=View README Documentation
 german.LaunchProgram=CRDB Zoho Converter starten
 german.ViewREADME=README-Dokumentation anzeigen
 
-; Additional metadata for the installer
-[Setup]
-; Version info for the installer
-VersionInfoVersion={#MyAppVersion}
-VersionInfoCompany={#MyAppPublisher}
-VersionInfoDescription=CRDB Zoho Converter Installer
-VersionInfoCopyright=Copyright (C) 2025 {#MyAppPublisher}
-VersionInfoProductName={#MyAppName}
-VersionInfoProductVersion={#MyAppVersion}
+
