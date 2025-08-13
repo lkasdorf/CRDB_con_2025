@@ -225,6 +225,16 @@ setx PATH "$env:PATH;C:\Tools\crdb-converter" /M
 crdb-convert.exe --help
 ```
 
+**Option 4: Professional Windows Installer (Recommended for Distribution)**
+```powershell
+# Build the installer (requires Inno Setup)
+cd installer
+.\build-installer.ps1
+
+# The installer will be created in dist/crdb-converter-setup-0.2.5.exe
+# It automatically handles PATH modification and creates Start Menu shortcuts
+```
+
 After installing/building:
 - Show help: `crdb-convert --help`
 - See examples under "Usage" and "CLI options".
@@ -287,6 +297,21 @@ Each release includes:
 - **Release notes** with changelog and installation instructions
 
 **Latest Release:** [v0.2.5](https://github.com/lkasdorf/CRDB_con_2025/releases/latest)
+
+### Professional Windows Installer
+For Windows users who prefer a traditional installer:
+- **Automatic PATH modification** (system-wide or user-specific)
+- **Start Menu shortcuts** and optional desktop icons
+- **Uninstall capability** via Control Panel
+- **Multi-language support** (English/German)
+
+**Build the installer:**
+```powershell
+cd installer
+.\build-installer.ps1
+```
+
+**Download:** [crdb-converter-setup-0.2.5.exe](https://github.com/lkasdorf/CRDB_con_2025/releases/latest)
 
 ### Add to PATH (so you can run `crdb-convert` from anywhere)
 
