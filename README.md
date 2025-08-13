@@ -253,6 +253,24 @@ python3 _inspect_xls.py
 ```
 
 ### Versioning
+Semantic Versioning (MAJOR.MINOR.PATCH). Update the version in `pyproject.toml` under `[project].version`.
+
+Examples:
+- Stable release: `0.2.0` → `0.2.1`
+- Next minor: `0.2.1` → `0.3.0`
+- Development pre-release (editable installs and packaging will expose this): `0.3.0.dev1`, `0.3.0a1`, `0.3.0b1`.
+
+Check installed version:
+```bash
+crdb-convert --version
+```
+
+Release checklist:
+- Bump `[project].version` in `pyproject.toml`
+- Commit and tag (optional): `git tag vX.Y.Z && git push --tags`
+- Reinstall if using editable: `pip install -e .`
+
+Repository notes:
 - The `files/` directory is added to `.gitignore` and not versioned.
 - The `source/` and `converted/` directories are versioned but kept empty in a fresh clone via `.gitkeep` files. Output CSVs and logs will appear in `converted/` after running the converter.
 

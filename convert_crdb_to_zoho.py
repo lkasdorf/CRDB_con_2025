@@ -5,6 +5,10 @@ from pathlib import Path
 import sys
 import pandas as pd
 from typing import List, Dict, Tuple, Any
+try:
+    from importlib.metadata import version as _pkg_version  # Python 3.8+
+except Exception:  # pragma: no cover
+    _pkg_version = None  # type: ignore
 
 
 class ConversionError(Exception):
@@ -23,6 +27,15 @@ class MissingColumnsError(ConversionError):
     def __init__(self, message: str, available: List[str] | None = None) -> None:
         super().__init__(message)
         self.available = available or []
+
+
+def get_package_version() -> str:
+    if _pkg_version is None:
+        return "unknown"
+    try:
+        return _pkg_version("crdb-zoho-converter")
+    except Exception:
+        return "unknown"
 
 
 def find_transaction_header_index(raw_df: pd.DataFrame, max_scan_rows: int = 500) -> int | None:
@@ -391,6 +404,7 @@ def main() -> None:
     # Single-file mode (optional)
     parser.add_argument("-i", "--input", type=Path, help="Path to a single XLS file to convert")
     parser.add_argument("-o", "--output", type=Path, help="Output CSV path for single-file mode")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {get_package_version()}")
     # Batch mode
     parser.add_argument("--source", type=Path, default=Path("source"), help="Directory containing source .xls files")
     parser.add_argument("--dest", type=Path, default=Path("converted"), help="Directory to write converted .csv files")
