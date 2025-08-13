@@ -13,6 +13,46 @@ Converts CRDB bank statements (XLS/XLSX) into the CSV format that can be importe
 - Linux/macOS shells are supported (examples provided)
  - Dependencies: see `requirements.txt` (includes `pandas`, `xlrd`, `openpyxl`)
 
+### Quick start
+Linux/macOS (bash/zsh):
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+
+# Batch conversion (recommended)
+crdb-convert --source source --dest converted
+
+# Single file
+crdb-convert -i source/statement.xlsx -o converted/statement.csv
+
+# With mapping and per-row diagnostics
+crdb-convert --source source --dest converted --map-file mapping.json --report-dir converted/reports
+```
+
+Windows (PowerShell):
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -e .
+
+# Batch conversion (recommended)
+crdb-convert --source source --dest converted
+
+# Single file
+crdb-convert -i source\statement.xlsx -o converted\statement.csv
+
+# With mapping and per-row diagnostics
+crdb-convert --source source --dest converted --map-file mapping.json --report-dir converted\reports
+```
+
+Alternative (global install via pipx):
+```bash
+pip install pipx && pipx ensurepath
+pipx install .
+crdb-convert --help
+```
+
 ### Setup (recommended with virtual environment)
 Windows (PowerShell):
 ```powershell
@@ -62,10 +102,10 @@ python3 convert_crdb_to_zoho.py -i files/crdb_input.xls -o converted/crdb_input.
 ```
 5) Import the generated CSV(s) from `converted/` into Zoho Books.
 
-### Installation (lokal/standalone)
+### Installation (local/standalone)
 
-Variante A: Installation in eine virtuelle Umgebung (empfohlen)
-- Windows (PowerShell): siehe Abschnitt "Setup". Danach:
+Option A: Install into a virtual environment (recommended)
+- Windows (PowerShell): see "Setup" above. Then:
 ```powershell
 pip install -e .
 ```
@@ -73,58 +113,58 @@ pip install -e .
 ```bash
 pip install -e .
 ```
-Danach stehen die Befehle `crdb-convert` und `crdb-inspect` direkt im PATH zur Verfügung.
+After this, the commands `crdb-convert` and `crdb-inspect` are available on your PATH.
 
-Variante B: Installation systemweit via pipx (sauber, isoliert)
-- Voraussetzung: `pipx` installieren (`pip install pipx` und `pipx ensurepath`).
+Option B: System-wide via pipx (clean, isolated)
+- Prerequisite: install `pipx` (`pip install pipx` and then `pipx ensurepath`).
 ```bash
 pipx install .
 ```
-Nun können Sie die Tools global nutzen: `crdb-convert --help`.
+You can now use the tools globally: `crdb-convert --help`.
 
-Variante C: Ohne Build, direkt per Python ausführen (ohne Installation)
+Option C: Run directly with Python (no installation)
 ```bash
 python3 convert_crdb_to_zoho.py --source source --dest converted
 ```
 
-Optional: Standalone-Binary bauen (ohne Python auf Zielsystem)
-- PyInstaller installieren und Binary erstellen:
+Optional: Build standalone binaries (no Python required on target system)
+- Install PyInstaller and build binaries:
 ```bash
 pip install pyinstaller
 pyinstaller --onefile --name crdb-convert convert_crdb_to_zoho.py
 pyinstaller --onefile --name crdb-inspect _inspect_xls.py
 ```
-Die erzeugten Binärdateien finden Sie unter `dist/` (`crdb-convert`, `crdb-inspect`). Diese sind pro OS/Arch spezifisch.
+The generated binaries are in `dist/` (`crdb-convert`, `crdb-inspect`). They are OS/arch specific.
 
-Nach Installation/Build:
-- Hilfe anzeigen: `crdb-convert --help`
-- Beispiele siehe "Usage" und "CLI options".
+After installing/building:
+- Show help: `crdb-convert --help`
+- See examples under "Usage" and "CLI options".
 
-### PATH einrichten (damit `crdb-convert` überall läuft)
+### Add to PATH (so you can run `crdb-convert` from anywhere)
 
-- Virtuelle Umgebung (empfohlen): Durch Aktivieren der venv wird deren `Scripts` (Windows) bzw. `bin` (Linux/macOS) automatisch dem PATH hinzugefügt.
+- Virtual environment (recommended): Activating the venv automatically adds its `Scripts` (Windows) or `bin` (Linux/macOS) folder to PATH.
   - Windows (PowerShell): `\.venv\Scripts\Activate.ps1`
   - Linux/macOS (bash/zsh): `source .venv/bin/activate`
 
-- pipx (global, isoliert): Führen Sie einmal `pipx ensurepath` aus und starten Sie Ihr Terminal neu.
-  - Prüfen: `which crdb-convert` (Linux/macOS) bzw. `where crdb-convert` (Windows)
+- pipx (global, isolated): Run `pipx ensurepath` once and restart your shell.
+  - Verify: `which crdb-convert` (Linux/macOS) or `where crdb-convert` (Windows)
 
-- pip --user (falls verwendet): Stellen Sie sicher, dass das Benutzer-Bin-Verzeichnis im PATH ist.
-  - Linux/macOS: `~/.local/bin` (ggf. in `~/.bashrc`/`~/.zshrc` ergänzen)
+- pip --user (if you use it): Ensure the user bin directory is on PATH.
+  - Linux/macOS: `~/.local/bin` (add to `~/.bashrc`/`~/.zshrc` if needed)
     ```bash
     echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
     source ~/.bashrc
     ```
-  - Windows: Ermitteln Sie die User-Base: `py -m site --user-base` bzw. `python -m site --user-base`.
-    Fügen Sie den `Scripts`-Unterordner dieser Base dem PATH hinzu (z. B. `%USERPROFILE%\AppData\Roaming\Python\Python311\Scripts`).
+  - Windows: Find your user base with `py -m site --user-base` or `python -m site --user-base`.
+    Add its `Scripts` subfolder to PATH (e.g., `%USERPROFILE%\AppData\Roaming\Python\Python311\Scripts`).
 
-- PyInstaller-Binaries: Legen Sie die erzeugten Dateien aus `dist/` in ein Verzeichnis, das bereits im PATH liegt, oder ergänzen Sie PATH entsprechend.
-  - Linux/macOS (temporär für aktuelle Session):
+- PyInstaller binaries: Put the files from `dist/` into a directory already on PATH, or extend PATH.
+  - Linux/macOS (temporary for current session):
     ```bash
     export PATH="$(pwd)/dist:$PATH"
     ```
-  - Linux/macOS (dauerhaft): in `~/.bashrc`/`~/.zshrc` analog ergänzen.
-  - Windows (PowerShell, dauerhaft): Systemsteuerung → Umgebungsvariablen → PATH → `...\dist` hinzufügen. Alternativ (mit Vorsicht):
+  - Linux/macOS (permanent): add the same line to `~/.bashrc`/`~/.zshrc`.
+  - Windows (PowerShell, permanent): Control Panel → Environment Variables → PATH → add `...\dist`. Or (with care):
     ```powershell
     setx PATH "$env:PATH;$(Get-Location)\dist"
     ```
@@ -132,35 +172,35 @@ Nach Installation/Build:
 ### CLI options
 All flags are optional; defaults are chosen to work out-of-the-box with typical CRDB exports.
 
-- `-i, --input PATH`: Einzeldatei-Eingabe (XLS/XLSX).
-- `-o, --output PATH`: Ausgabedatei (CSV) in Einzeldatei-Modus. Standard: `<dest>/<input_stem>.csv`.
-- `--source PATH`: Quellverzeichnis für Batch-Modus. Standard: `source/`.
-- `--dest PATH`: Ausgabeverzeichnis für Batch-Modus. Standard: `converted/`.
-- `--log PATH`: Pfad zur Logdatei. Standard: `<dest>/conversion.log`.
-- `--force`: Existierende Ziel-CSV überschreiben.
+- `-i, --input PATH`: Single-file input (XLS/XLSX).
+- `-o, --output PATH`: Output CSV path in single-file mode. Default: `<dest>/<input_stem>.csv`.
+- `--source PATH`: Source directory for batch mode. Default: `source/`.
+- `--dest PATH`: Output directory for batch mode. Default: `converted/`.
+- `--log PATH`: Path to log file. Default: `<dest>/conversion.log`.
+- `--force`: Overwrite existing target CSVs.
 
-- `--strict`: Abbruch bei Parsing-/Validierungswarnungen.
-- `--dry-run`: Nur validieren und berichten, keine CSV schreiben.
-- `--delimiter ";"`: CSV-Separator (Standard `;`).
-- `--max-scan-rows 500`: Max. Zeilen für Headersuche.
-- `--engine auto|xlrd|openpyxl`: Excel-Engine. Standard: `auto`.
-- `--trace`: Detailliertes DEBUG-Tracing in Logs aktivieren.
-- `--trace-max-rows 20`: Anzahl getracter Zeilen.
+- `--strict`: Fail on parsing/validation warnings.
+- `--dry-run`: Validate and report only; do not write CSV.
+- `--delimiter ";"`: CSV delimiter (default `;`).
+- `--max-scan-rows 500`: Max rows to scan while searching for the header.
+- `--engine auto|xlrd|openpyxl`: Excel reader engine (default `auto`).
+- `--trace`: Enable detailed DEBUG tracing in logs.
+- `--trace-max-rows 20`: Number of rows to trace.
 
-Mapping (Spaltenzuordnung):
-- `--map-file PATH`: JSON mit Mapping-Konfiguration (siehe unten).
-- `--map-posting STR`: Override für Buchungsdatum-Spalte.
-- `--map-details STR`: Override für Details/Narration-Spalte.
-- `--map-debit STR`: Override für Debit-Spalte.
-- `--map-credit STR`: Override für Credit-Spalte.
+Mapping (column selection):
+- `--map-file PATH`: JSON mapping configuration (see below).
+- `--map-posting STR`: Override mapping for posting date column.
+- `--map-details STR`: Override mapping for details/narration column.
+- `--map-debit STR`: Override mapping for debit column.
+- `--map-credit STR`: Override mapping for credit column.
 
-Diagnose-Reports:
-- `--report PATH`: Per-Row-Diagnose-CSV im Einzeldatei-Modus.
-- `--report-dir PATH`: Verzeichnis für Per-Row-Diagnose-CSV je Datei im Batch-Modus (Dateiname: `<stem>.report.csv`).
+Diagnostics reports:
+- `--report PATH`: Per-row diagnostics CSV in single-file mode.
+- `--report-dir PATH`: Directory for per-row diagnostics CSVs in batch mode (filename: `<stem>.report.csv`).
 
-Hinweise:
-- Unterstützt `.xls` und `.xlsx`. Für `.xlsx` wird `openpyxl` verwendet.
-- Logdatei wird standardmäßig unter `<dest>/conversion.log` geschrieben.
+Notes:
+- Supports `.xls` and `.xlsx`. For `.xlsx`, `openpyxl` is used.
+- The log file is written to `<dest>/conversion.log` by default.
 
 ### Target format (CSV)
 Semicolon-separated (;) with this header:
