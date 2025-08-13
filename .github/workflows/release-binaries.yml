@@ -1,0 +1,108 @@
+name: release-binaries
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install . pyinstaller
+      - run: pyinstaller --onefile --name crdb-convert convert_crdb_to_zoho.py
+      - run: pyinstaller --onefile --name crdb-inspect _inspect_xls.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: crdb-convert-linux
+          path: dist/crdb-convert
+      - uses: actions/upload-artifact@v4
+        with:
+          name: crdb-inspect-linux
+          path: dist/crdb-inspect
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install . pyinstaller
+      - run: pyinstaller --onefile --name crdb-convert convert_crdb_to_zoho.py
+      - run: pyinstaller --onefile --name crdb-inspect _inspect_xls.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: crdb-convert-windows
+          path: dist/crdb-convert.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: crdb-inspect-windows
+          path: dist/crdb-inspect.exe
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install . pyinstaller
+      - run: pyinstaller --onefile --name crdb-convert convert_crdb_to_zoho.py
+      - run: pyinstaller --onefile --name crdb-inspect _inspect_xls.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: crdb-convert-macos
+          path: dist/crdb-convert
+      - uses: actions/upload-artifact@v4
+        with:
+          name: crdb-inspect-macos
+          path: dist/crdb-inspect
+
+  publish-release:
+    needs: [build-linux, build-windows, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: crdb-convert-linux
+          path: .
+      - uses: actions/download-artifact@v4
+        with:
+          name: crdb-inspect-linux
+          path: .
+      - uses: actions/download-artifact@v4
+        with:
+          name: crdb-convert-windows
+          path: .
+      - uses: actions/download-artifact@v4
+        with:
+          name: crdb-inspect-windows
+          path: .
+      - uses: actions/download-artifact@v4
+        with:
+          name: crdb-convert-macos
+          path: .
+      - uses: actions/download-artifact@v4
+        with:
+          name: crdb-inspect-macos
+          path: .
+      - name: Upload assets to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            crdb-convert
+            crdb-inspect
+            crdb-convert.exe
+            crdb-inspect.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+

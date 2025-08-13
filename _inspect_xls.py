@@ -1,14 +1,28 @@
 import pandas as pd
 from pathlib import Path
 from pprint import pprint
+import argparse
 
 
 def main() -> None:
-    source_path = Path("files/crdb_input.xls")
+    parser = argparse.ArgumentParser(description="Inspect XLS/XLSX files for header candidates and sample rows")
+    parser.add_argument("-i", "--input", type=Path, default=Path("files/crdb_input.xls"), help="Path to XLS/XLSX to inspect")
+    parser.add_argument("--engine", choices=["auto", "xlrd", "openpyxl"], default="auto", help="Excel reader engine")
+    parser.add_argument("--sheet", default=None, help="Sheet name or 0-based index")
+    parser.add_argument("--max-scan-rows", type=int, default=500, help="Max rows to scan for headers")
+    args = parser.parse_args()
+
+    source_path = args.input
     print(f"Exists: {source_path.exists()}  Size: {source_path.stat().st_size if source_path.exists() else 'n/a'}")
 
+    engine = None
+    if args.engine == "xlrd":
+        engine = "xlrd"
+    elif args.engine == "openpyxl":
+        engine = "openpyxl"
+
     # Read without header to scan for the real header row inside the sheet
-    xl = pd.read_excel(source_path, engine="xlrd", header=None, dtype=str)
+    xl = pd.read_excel(source_path, engine=engine, header=None, dtype=str, sheet_name=args.sheet)
     print("Shape:", xl.shape)
 
     # Heuristics: look for typical header combinations
@@ -20,7 +34,7 @@ def main() -> None:
         {"transaction date", "debit", "credit"},
     ]
 
-    max_scan_rows = min(500, len(xl))
+    max_scan_rows = min(args.max_scan_rows, len(xl))
     for i in range(max_scan_rows):
         row = xl.iloc[i].fillna("").astype(str).str.strip()
         lowered = {cell.lower() for cell in row if cell}

@@ -105,6 +105,12 @@ python3 convert_crdb_to_zoho.py -i files/crdb_input.xls -o converted/crdb_input.
 ```
 5) Import the generated CSV(s) from `converted/` into Zoho Books.
 
+Inspector (optional):
+```bash
+crdb-inspect --help
+crdb-inspect --input files/crdb_input.xls --engine auto --sheet 0 --max-scan-rows 500
+```
+
 ### Installation (local/standalone)
 
 Option A: Install into a virtual environment (recommended)
@@ -142,6 +148,46 @@ The generated binaries are in `dist/` (`crdb-convert`, `crdb-inspect`). They are
 After installing/building:
 - Show help: `crdb-convert --help`
 - See examples under "Usage" and "CLI options".
+
+### Install from PyPI (recommended for end users)
+Using pipx (global, isolated; auto PATH integration):
+```bash
+pip install pipx && pipx ensurepath
+pipx install crdb-zoho-converter
+crdb-convert --help
+```
+
+Alternative with pip --user:
+```bash
+pip install --user crdb-zoho-converter
+# Ensure ~/.local/bin (Linux/macOS) or the Windows user Scripts folder is on PATH
+```
+
+### Download prebuilt binaries (GitHub Releases)
+Linux/macOS (download and add to PATH):
+```bash
+curl -L -o /usr/local/bin/crdb-convert \
+  https://github.com/lkasdorf/CRDB_con_2025/releases/download/vX.Y.Z/crdb-convert
+chmod +x /usr/local/bin/crdb-convert
+crdb-convert --help
+
+# Optional inspector tool
+sudo curl -L -o /usr/local/bin/crdb-inspect \
+  https://github.com/lkasdorf/CRDB_con_2025/releases/download/vX.Y.Z/crdb-inspect
+sudo chmod +x /usr/local/bin/crdb-inspect
+```
+
+Windows (PowerShell):
+```powershell
+if (-Not (Test-Path "$env:USERPROFILE\bin")) { New-Item -ItemType Directory $env:USERPROFILE\bin | Out-Null }
+Invoke-WebRequest -Uri https://github.com/lkasdorf/CRDB_con_2025/releases/download/vX.Y.Z/crdb-convert.exe -OutFile $env:USERPROFILE\bin\crdb-convert.exe
+# Make it available on PATH for future sessions:
+setx PATH "$env:PATH;$env:USERPROFILE\bin"
+crdb-convert.exe --help
+
+# Optional inspector tool
+Invoke-WebRequest -Uri https://github.com/lkasdorf/CRDB_con_2025/releases/download/vX.Y.Z/crdb-inspect.exe -OutFile $env:USERPROFILE\bin\crdb-inspect.exe
+```
 
 ### Add to PATH (so you can run `crdb-convert` from anywhere)
 
@@ -189,6 +235,8 @@ All flags are optional; defaults are chosen to work out-of-the-box with typical 
 - `--engine auto|xlrd|openpyxl`: Excel reader engine (default `auto`).
 - `--trace`: Enable detailed DEBUG tracing in logs.
 - `--trace-max-rows 20`: Number of rows to trace.
+- `--sheet NAME|INDEX`: Select sheet by name or 0-based index.
+- `--header-row N`: Override detected header row (1-based).
 
 Mapping (column selection):
 - `--map-file PATH`: JSON mapping configuration (see below).
@@ -204,6 +252,25 @@ Diagnostics reports:
 Notes:
 - Supports `.xls` and `.xlsx`. For `.xlsx`, `openpyxl` is used.
 - The log file is written to `<dest>/conversion.log` by default.
+- Logging:
+  - `--json-logs` to emit structured logs (one JSON per line)
+  - `--log-rotate-size` and `--log-rotate-backups` for rotating log files
+
+Numbers/locale:
+- `--decimal .|,` decimal separator
+- `--thousands .|,|'|space` thousands separator (optional)
+- `--currency CODE|SYMBOL` currency code/symbol to strip (optional)
+
+CSV formatting:
+- `--encoding` output file encoding (default utf-8)
+- `--quotechar` CSV quote character (default ")
+- `--no-header` do not write CSV header row
+
+Redaction:
+- `--redact` masks sensitive fields in outputs (reports/logs/CSV)
+
+Summary:
+- `--summary PATH|DIR` write a JSON summary file (single-file) or to a directory (batch)
 
 ### Target format (CSV)
 Semicolon-separated (;) with this header:

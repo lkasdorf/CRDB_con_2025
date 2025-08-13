@@ -1,7 +1,9 @@
 import argparse
 import json
 import logging
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
+import os
 import sys
 import pandas as pd
 from typing import List, Dict, Tuple, Any
@@ -63,17 +65,63 @@ def normalize_header(cells: List[str]) -> List[str]:
     return normalized
 
 
-def parse_number(value: str) -> float:
+def parse_number(
+    value: str,
+    *,
+    decimal: str = ".",
+    thousands: str | None = None,
+    currency: str | None = None,
+    allow_parentheses_negative: bool = True,
+) -> float:
     if value is None:
         return 0.0
     s = str(value).strip()
     if not s:
         return 0.0
-    s = s.replace("\xa0", " ").replace(" ", "")
-    s = s.replace(",", "")
-    s = s.replace("USD", "")
+    # Normalize unicode minus and NBSP
+    s = s.replace("\xa0", " ")
+    s = s.replace("−", "-")  # Unicode minus
+
+    # Detect parentheses negative
+    is_negative = False
+    if allow_parentheses_negative and s.startswith("(") and s.endswith(")"):
+        is_negative = True
+        s = s[1:-1].strip()
+
+    # Strip currency codes/symbols if provided or common ones
+    currency_tokens = [
+        "USD",
+        "$",
+        "TZS",
+        "€",
+        "EUR",
+        "£",
+        "GBP",
+    ]
+    if currency:
+        currency_tokens.append(currency)
+    for tok in currency_tokens:
+        s = s.replace(tok, "")
+
+    # Remove spaces
+    s = s.replace(" ", "")
+
+    # Thousands/decimal handling
+    if thousands:
+        s = s.replace(thousands, "")
+    else:
+        # Remove common thousands separators
+        for sep in [",", ".", "'", "\u202f", "\u00a0"]:
+            # Do not remove if it's the decimal separator
+            if sep != decimal:
+                s = s.replace(sep, "")
+
+    if decimal != ".":
+        s = s.replace(decimal, ".")
+
     try:
-        return float(s)
+        num = float(s)
+        return -num if is_negative else num
     except ValueError:
         return 0.0
 
@@ -117,16 +165,16 @@ def _select_column_with_mapping(columns: List[str], mapping_values: List[str], f
     return fallback_picker()
 
 
-def _read_excel_with_fallback(input_path: Path, engine_choice: str) -> pd.DataFrame:
+def _read_excel_with_fallback(input_path: Path, engine_choice: str, sheet: Any = None) -> pd.DataFrame:
     suffix = input_path.suffix.lower()
     if engine_choice == "xlrd":
         try:
-            return pd.read_excel(input_path, engine="xlrd", header=None, dtype=str)
+            return pd.read_excel(input_path, engine="xlrd", header=None, dtype=str, sheet_name=sheet)
         except Exception as exc:  # noqa: BLE001
             raise ReadFileError(f"Failed reading {input_path} with xlrd: {exc}")
     if engine_choice == "openpyxl":
         try:
-            return pd.read_excel(input_path, engine="openpyxl", header=None, dtype=str)
+            return pd.read_excel(input_path, engine="openpyxl", header=None, dtype=str, sheet_name=sheet)
         except ImportError as exc:
             raise ReadFileError(
                 f"openpyxl is required to read {input_path}. Install with 'pip install openpyxl'. ({exc})"
@@ -137,7 +185,7 @@ def _read_excel_with_fallback(input_path: Path, engine_choice: str) -> pd.DataFr
     # auto engine selection
     if suffix in {".xlsx", ".xlsm", ".xltx", ".xltm"}:
         try:
-            return pd.read_excel(input_path, engine="openpyxl", header=None, dtype=str)
+            return pd.read_excel(input_path, engine="openpyxl", header=None, dtype=str, sheet_name=sheet)
         except ImportError as exc:
             raise ReadFileError(
                 f"openpyxl is required to read {input_path}. Install with 'pip install openpyxl'. ({exc})"
@@ -145,16 +193,16 @@ def _read_excel_with_fallback(input_path: Path, engine_choice: str) -> pd.DataFr
         except Exception as exc_openpyxl:  # noqa: BLE001
             logging.warning("openpyxl failed for %s: %s. Trying engine=None as fallback.", input_path, exc_openpyxl)
             try:
-                return pd.read_excel(input_path, engine=None, header=None, dtype=str)
+                return pd.read_excel(input_path, engine=None, header=None, dtype=str, sheet_name=sheet)
             except Exception as exc_none:  # noqa: BLE001
                 raise ReadFileError(f"Failed reading {input_path} with auto engine: {exc_none}")
     # legacy .xls
     try:
-        return pd.read_excel(input_path, engine="xlrd", header=None, dtype=str)
+        return pd.read_excel(input_path, engine="xlrd", header=None, dtype=str, sheet_name=sheet)
     except Exception as exc_xlrd:  # noqa: BLE001
         logging.warning("xlrd failed for %s: %s. Trying engine=None as fallback.", input_path, exc_xlrd)
         try:
-            return pd.read_excel(input_path, engine=None, header=None, dtype=str)
+            return pd.read_excel(input_path, engine=None, header=None, dtype=str, sheet_name=sheet)
         except Exception as exc_none:  # noqa: BLE001
             raise ReadFileError(f"Failed reading {input_path} with auto engine: {exc_none}")
 
@@ -173,10 +221,24 @@ def convert(
     trace: bool = False,
     trace_max_rows: int = 20,
     report_path: Path | None = None,
+    sheet: Any = None,
+    header_row: int | None = None,
+    decimal: str = ".",
+    thousands: str | None = None,
+    currency: str | None = None,
+    csv_encoding: str = "utf-8",
+    csv_quotechar: str = '"',
+    csv_no_header: bool = False,
+    redact: bool = False,
+    summary_path: Path | None = None,
 ) -> Tuple[int, int, Dict[str, int]]:
-    raw = _read_excel_with_fallback(input_path, engine_choice=engine)
+    raw = _read_excel_with_fallback(input_path, engine_choice=engine, sheet=sheet)
 
-    header_idx = find_transaction_header_index(raw, max_scan_rows=max_scan_rows)
+    if header_row is not None:
+        # Treat CLI as 1-based for convenience
+        header_idx = max(0, header_row - 1)
+    else:
+        header_idx = find_transaction_header_index(raw, max_scan_rows=max_scan_rows)
     if header_idx is None:
         raise HeaderNotFoundError("Could not locate the transactions table header row.")
 
@@ -264,7 +326,13 @@ def convert(
             if len(samples["date_unparsed"]) < log_sample_limit:
                 samples["date_unparsed"].append(f"row {header_idx + 1 + 1 + idx}: '{src_date}'")
 
-        parsed_debit = parse_number(src_debit)
+        parsed_debit = parse_number(
+            src_debit,
+            decimal=decimal,
+            thousands=thousands,
+            currency=currency,
+            allow_parentheses_negative=True,
+        )
         norm_debit = src_debit.replace("\xa0", " ").strip()
         has_digit_debit = any(ch.isdigit() for ch in norm_debit)
         if has_digit_debit and parsed_debit == 0.0 and norm_debit not in {"0", "0.0", "0.00"}:
@@ -272,7 +340,13 @@ def convert(
             if len(samples["debit_unparsed"]) < log_sample_limit:
                 samples["debit_unparsed"].append(f"row {header_idx + 1 + 1 + idx}: '{src_debit}'")
 
-        parsed_credit = parse_number(src_credit)
+        parsed_credit = parse_number(
+            src_credit,
+            decimal=decimal,
+            thousands=thousands,
+            currency=currency,
+            allow_parentheses_negative=True,
+        )
         norm_credit = src_credit.replace("\xa0", " ").strip()
         has_digit_credit = any(ch.isdigit() for ch in norm_credit)
         if has_digit_credit and parsed_credit == 0.0 and norm_credit not in {"0", "0.0", "0.00"}:
@@ -393,14 +467,45 @@ def convert(
         if strict:
             raise ConversionError(f"Strict mode: encountered parsing warnings: {issues}")
 
+    if redact:
+        # Mask Reference Number and Details-like fields in reports/logs
+        def _mask(sval: str) -> str:
+            sval = str(sval)
+            if len(sval) <= 6:
+                return "***"
+            return sval[:3] + "***" + sval[-3:]
+        df["Reference Number"] = df["Reference Number"].astype(str).map(_mask)
+
     if not dry_run:
-        df.to_csv(output_path, sep=delimiter, index=False)
+        df.to_csv(
+            output_path,
+            sep=delimiter,
+            index=False,
+            encoding=csv_encoding,
+            quotechar=csv_quotechar,
+        )
+
+    if summary_path is not None:
+        try:
+            summary = {
+                "input": str(input_path),
+                "output": str(output_path),
+                "rows_in": before_filter_rows,
+                "rows_out": after_filter_rows,
+                "issues": issues,
+            }
+            summary_path.parent.mkdir(parents=True, exist_ok=True)
+            with summary_path.open("w", encoding="utf-8") as f:
+                json.dump(summary, f, indent=2)
+            logging.info("Wrote summary: %s", summary_path)
+        except Exception as exc:  # noqa: BLE001
+            logging.error("Failed to write summary %s: %s", summary_path, exc)
 
     return before_filter_rows, after_filter_rows, issues
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Convert CRDB XLS statement(s) to Zoho Books CSV format")
+    parser = argparse.ArgumentParser(description="Convert CRDB XLS/XLSX statement(s) to Zoho Books CSV format")
     # Single-file mode (optional)
     parser.add_argument("-i", "--input", type=Path, help="Path to a single XLS file to convert")
     parser.add_argument("-o", "--output", type=Path, help="Output CSV path for single-file mode")
@@ -432,20 +537,92 @@ def main() -> None:
         default=None,
         help="Directory to write per-row diagnostics CSVs in batch mode (files named <stem>.report.csv)",
     )
+    # Sheet and header overrides
+    parser.add_argument("--sheet", help="Sheet name or 0-based index to read", default=None)
+    parser.add_argument("--header-row", type=int, default=None, help="1-based header row index to override detection")
+    # Number/Currency locale options
+    parser.add_argument("--decimal", default=".", help="Decimal separator in numbers (default '.')")
+    parser.add_argument("--thousands", default=None, help="Thousands separator in numbers (optional)")
+    parser.add_argument("--currency", default=None, help="Currency code or symbol to strip from amounts (optional)")
+    # CSV output formatting
+    parser.add_argument("--encoding", dest="csv_encoding", default="utf-8", help="CSV file encoding (default utf-8)")
+    parser.add_argument("--quotechar", dest="csv_quotechar", default='"', help="CSV quote character (default '"')")
+    parser.add_argument("--no-header", dest="csv_no_header", action="store_true", help="Write CSV without header row")
+    # Redaction
+    parser.add_argument("--redact", action="store_true", help="Mask sensitive fields in outputs (reports/logs/CSV)")
+    # Summary
+    parser.add_argument("--summary", type=Path, default=None, help="Write a JSON summary file for each conversion")
+    # Config file and environment overrides
+    parser.add_argument("--config", type=Path, default=None, help="Path to TOML or JSON config file for defaults")
+    parser.add_argument("--json-logs", action="store_true", help="Emit logs as one-JSON-object-per-line")
+    parser.add_argument("--log-rotate-size", type=int, default=0, help="Rotate log file at ~N bytes (0=disabled)")
+    parser.add_argument("--log-rotate-backups", type=int, default=3, help="How many rotated log files to keep")
 
     args = parser.parse_args()
 
-    # Configure logging
-    log_path = args.log if args.log else (args.dest / "conversion.log")
+    # Load config file (TOML or JSON) and merge into args defaults
+    cfg: Dict[str, Any] = {}
+    if args.config and args.config.exists():
+        try:
+            if args.config.suffix.lower() in {".toml"}:
+                try:
+                    import tomllib  # Python 3.11+
+                except Exception as exc:  # noqa: BLE001
+                    raise RuntimeError(f"tomllib is required for TOML config: {exc}")
+                with args.config.open("rb") as f:
+                    cfg = tomllib.load(f)
+            elif args.config.suffix.lower() in {".json"}:
+                with args.config.open("r", encoding="utf-8") as f:
+                    cfg = json.load(f)
+            else:
+                logging.warning("Unsupported config extension for %s; only .toml or .json supported", args.config)
+        except Exception as exc:  # noqa: BLE001
+            logging.error("Failed to read config %s: %s", args.config, exc)
+            cfg = {}
+
+    def cfg_get(name: str, default: Any) -> Any:
+        return cfg.get(name, default)
+
+    # Environment overrides (prefix CRDB_)
+    env = os.environ
+    def env_get(name: str, default: Any) -> Any:
+        key = f"CRDB_{name.upper().replace('-', '_')}"
+        return env.get(key, default)
+
+    # Resolve logging settings early
+    log_path = args.log if args.log else Path(cfg_get("log", args.dest / "conversion.log"))
+    log_path = Path(env_get("log", str(log_path)))
     log_path.parent.mkdir(parents=True, exist_ok=True)
-    logging.basicConfig(
-        level=logging.DEBUG if args.trace else logging.INFO,
-        format="%(asctime)s %(levelname)s %(message)s",
-        handlers=[
-            logging.FileHandler(log_path, encoding="utf-8"),
-            logging.StreamHandler(sys.stdout),
-        ],
-    )
+
+    level = logging.DEBUG if args.trace or env_get("trace", str(cfg_get("trace", "")).lower() in {"1", "true", "yes"}) else logging.INFO
+
+    handlers: List[logging.Handler] = []
+    if args.log_rotate_size and args.log_rotate_size > 0:
+        handlers.append(RotatingFileHandler(log_path, maxBytes=args.log_rotate_size, backupCount=args.log_rotate_backups, encoding="utf-8"))
+    else:
+        handlers.append(logging.FileHandler(log_path, encoding="utf-8"))
+    handlers.append(logging.StreamHandler(sys.stdout))
+
+    if args.json_logs:
+        class JsonFormatter(logging.Formatter):
+            def format(self, record: logging.LogRecord) -> str:  # noqa: D401
+                payload = {
+                    "time": self.formatTime(record, "%Y-%m-%dT%H:%M:%S"),
+                    "level": record.levelname,
+                    "message": record.getMessage(),
+                    "name": record.name,
+                }
+                return json.dumps(payload, ensure_ascii=False)
+        formatter = JsonFormatter()
+    else:
+        formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
+    for h in handlers:
+        h.setFormatter(formatter)
+    root = logging.getLogger()
+    root.handlers = []
+    root.setLevel(level)
+    for h in handlers:
+        root.addHandler(h)
 
     # Load mapping config
     mapping: Dict[str, Any] = {}
@@ -489,6 +666,16 @@ def main() -> None:
                 trace=args.trace,
                 trace_max_rows=args.trace_max_rows,
                 report_path=(args.report if args.report else (args.report_dir / f"{args.input.stem}.report.csv")) if (args.report or args.report_dir) else None,
+                sheet=(int(args.sheet) if isinstance(args.sheet, str) and args.sheet.isdigit() else args.sheet),
+                header_row=args.header_row,
+                decimal=args.decimal,
+                thousands=args.thousands,
+                currency=args.currency,
+                csv_encoding=args.csv_encoding,
+                csv_quotechar=args.csv_quotechar,
+                csv_no_header=args.csv_no_header,
+                redact=args.redact,
+                summary_path=args.summary,
             )
             logging.info(
                 "Converted: %s -> %s | rows_in=%s rows_out=%s warnings=%s",
@@ -544,6 +731,16 @@ def main() -> None:
                 trace=args.trace,
                 trace_max_rows=args.trace_max_rows,
                 report_path=(args.report_dir / f"{src.stem}.report.csv") if args.report_dir else None,
+                sheet=(int(args.sheet) if isinstance(args.sheet, str) and args.sheet.isdigit() else args.sheet),
+                header_row=args.header_row,
+                decimal=args.decimal,
+                thousands=args.thousands,
+                currency=args.currency,
+                csv_encoding=args.csv_encoding,
+                csv_quotechar=args.csv_quotechar,
+                csv_no_header=args.csv_no_header,
+                redact=args.redact,
+                summary_path=(args.summary.parent / f"{src.stem}.summary.json") if (args.summary and args.summary.is_dir()) else args.summary,
             )
             logging.info(
                 "Converted: %s -> %s | rows_in=%s rows_out=%s warnings=%s",
