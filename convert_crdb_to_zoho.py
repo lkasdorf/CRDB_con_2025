@@ -1,5 +1,7 @@
 import argparse
+import logging
 from pathlib import Path
+import sys
 import pandas as pd
 from typing import List
 
@@ -61,7 +63,7 @@ def convert(input_path: Path, output_path: Path) -> None:
 
     header_idx = find_transaction_header_index(raw)
     if header_idx is None:
-        raise RuntimeError("Konnte die Header-Zeile der Transaktionen nicht finden.")
+        raise RuntimeError("Could not locate the transactions table header row.")
 
     headers = normalize_header(raw.iloc[header_idx].tolist())
     data = raw.iloc[header_idx + 1 :].copy()
@@ -93,7 +95,7 @@ def convert(input_path: Path, output_path: Path) -> None:
 
     if not all([col_posting, col_details, col_debit, col_credit]):
         raise RuntimeError(
-            f"Fehlende Pflichtspalten: posting={col_posting!r} details={col_details!r} debit={col_debit!r} credit={col_credit!r}"
+            f"Missing required columns: posting={col_posting!r} details={col_details!r} debit={col_debit!r} credit={col_credit!r}"
         )
 
     df = pd.DataFrame({
@@ -110,13 +112,78 @@ def convert(input_path: Path, output_path: Path) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Convert CRDB XLS statement to Zoho Books CSV format")
-    parser.add_argument("-i", "--input", type=Path, default=Path("files/crdb_input.xls"))
-    parser.add_argument("-o", "--output", type=Path, default=Path("files/zoho_converted.csv"))
+    parser = argparse.ArgumentParser(description="Convert CRDB XLS statement(s) to Zoho Books CSV format")
+    # Single-file mode (optional)
+    parser.add_argument("-i", "--input", type=Path, help="Path to a single XLS file to convert")
+    parser.add_argument("-o", "--output", type=Path, help="Output CSV path for single-file mode")
+    # Batch mode
+    parser.add_argument("--source", type=Path, default=Path("source"), help="Directory containing source .xls files")
+    parser.add_argument("--dest", type=Path, default=Path("converted"), help="Directory to write converted .csv files")
+    parser.add_argument("--log", type=Path, default=None, help="Path to log file (default: <dest>/conversion.log)")
+    parser.add_argument("--force", action="store_true", help="Re-convert even if target file already exists")
+
     args = parser.parse_args()
 
-    convert(args.input, args.output)
-    print(f"Wrote: {args.output}")
+    # Configure logging
+    log_path = args.log if args.log else (args.dest / "conversion.log")
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(message)s",
+        handlers=[
+            logging.FileHandler(log_path, encoding="utf-8"),
+            logging.StreamHandler(sys.stdout),
+        ],
+    )
+
+    # Single-file mode if input is provided
+    if args.input:
+        output = args.output if args.output else (args.dest / f"{args.input.stem}.csv")
+        output.parent.mkdir(parents=True, exist_ok=True)
+        if output.exists() and not args.force:
+            logging.info("Skip (exists): %s -> %s", args.input, output)
+            return
+        try:
+            convert(args.input, output)
+            logging.info("Converted: %s -> %s", args.input, output)
+            print(f"Wrote: {output}")
+        except Exception as exc:
+            logging.exception("Failed to convert %s: %s", args.input, exc)
+            raise
+        return
+
+    # Batch mode
+    source_dir: Path = args.source
+    dest_dir: Path = args.dest
+    source_dir.mkdir(parents=True, exist_ok=True)
+    dest_dir.mkdir(parents=True, exist_ok=True)
+
+    xls_files = sorted(p for p in source_dir.glob("*.xls") if p.is_file())
+    if not xls_files:
+        logging.info("No .xls files found in %s", source_dir)
+        print("No .xls files found.")
+        return
+
+    converted_count = 0
+    skipped_count = 0
+    failed_count = 0
+    for src in xls_files:
+        dst = dest_dir / f"{src.stem}.csv"
+        if dst.exists() and not args.force:
+            logging.info("Skip (exists): %s -> %s", src, dst)
+            skipped_count += 1
+            continue
+        try:
+            convert(src, dst)
+            logging.info("Converted: %s -> %s", src, dst)
+            converted_count += 1
+        except Exception as exc:
+            logging.exception("Failed: %s -> %s : %s", src, dst, exc)
+            failed_count += 1
+
+    summary = f"Done. Converted={converted_count}, Skipped={skipped_count}, Failed={failed_count}. Log: {log_path}"
+    print(summary)
+    logging.info(summary)
 
 
 if __name__ == "__main__":
