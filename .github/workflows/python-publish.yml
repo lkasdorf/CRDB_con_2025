@@ -74,3 +74,5 @@ jobs:
           packages-dir: dist/
           # Disable attestations to avoid network timeout issues
           attestations: false
+          # Skip existing files to avoid "File already exists" errors
+          skip-existing: true
