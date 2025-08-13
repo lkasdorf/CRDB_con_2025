@@ -18,7 +18,7 @@ Windows (PowerShell):
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
-python -m pip install pandas==2.2.2 xlrd==2.0.1
+python -m pip install -r requirements.txt
 ```
 
 Linux/macOS (bash/zsh):
@@ -26,7 +26,7 @@ Linux/macOS (bash/zsh):
 python3 -m venv .venv
 source .venv/bin/activate
 python3 -m pip install --upgrade pip
-python3 -m pip install pandas==2.2.2 xlrd==2.0.1
+python3 -m pip install -r requirements.txt
 ```
 
 ### Usage
