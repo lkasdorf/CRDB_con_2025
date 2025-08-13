@@ -39,7 +39,7 @@ iscc crdb-converter-setup.iss
 if %errorlevel% equ 0 (
     echo.
     echo SUCCESS: Installer built successfully!
-    echo Output: ..\dist\crdb-converter-setup-0.2.6.exe
+    echo Output: ..\dist\crdb-converter-setup-0.2.7.exe
 ) else (
     echo.
     echo ERROR: Failed to build installer

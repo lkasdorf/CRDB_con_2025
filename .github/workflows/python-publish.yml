@@ -72,3 +72,5 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/
+          # Disable attestations to avoid network timeout issues
+          attestations: false

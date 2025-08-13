@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "crdb-zoho-converter"
-version = "0.2.6"
+version = "0.2.7"
 description = "Convert CRDB bank statements (XLS/XLSX) into CSV for Zoho Books"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -22,5 +22,3 @@ crdb-inspect = "_inspect_xls:main"
 
 [tool.setuptools]
 py-modules = ["convert_crdb_to_zoho", "_inspect_xls"]
-
-

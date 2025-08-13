@@ -62,6 +62,175 @@ pipx install .
 crdb-convert --help
 ```
 
+## 🗑️ Uninstallation & Cleanup
+
+**💡 Quick Cleanup:** Use the provided cleanup scripts for complete removal:
+- **Windows:** `cleanup-windows.ps1` (run as Administrator)
+- **Linux/macOS:** `cleanup-linux.sh` (make executable with `chmod +x`)
+
+### Remove pipx Installation (Linux/macOS/Windows)
+```bash
+# Remove the package
+pipx uninstall crdb-zoho-converter
+
+# Remove pipx completely (optional)
+pip uninstall pipx
+```
+
+### Remove Virtual Environment Installation
+```bash
+# Simply delete the virtual environment directory
+rm -rf .venv/                    # Linux/macOS
+Remove-Item -Recurse -Force .venv  # Windows PowerShell
+```
+
+### Remove Windows EXE Files
+If you built standalone executables with PyInstaller:
+```powershell
+# Remove the dist/ directory containing EXEs
+Remove-Item -Recurse -Force dist\
+
+# Remove build artifacts
+Remove-Item -Recurse -Force build\
+Remove-Item -Recurse -Force *.spec
+```
+
+### Remove Windows Inno Setup Installer
+If you installed via the professional installer:
+```powershell
+# Method 1: Control Panel (recommended)
+# Go to Control Panel → Programs → Programs and Features
+# Find "CRDB Zoho Converter" and click "Uninstall"
+
+# Method 2: Command line (requires admin)
+# The installer should have created an uninstaller at:
+# C:\Program Files\CRDB Zoho Converter\unins000.exe
+# Run: "C:\Program Files\CRDB Zoho Converter\unins000.exe"
+
+# Method 3: Manual cleanup (if uninstaller fails)
+# Remove from PATH manually:
+# - User PATH: Edit Environment Variables → User variables → Path
+# - System PATH: Edit Environment Variables → System variables → Path
+# Remove: C:\Program Files\CRDB Zoho Converter
+
+# Remove installation directory
+Remove-Item -Recurse -Force "C:\Program Files\CRDB Zoho Converter"
+```
+
+### Remove from Windows PATH
+If you manually added to PATH:
+```powershell
+# Check current PATH
+$env:PATH -split ';'
+
+# Remove specific directory from PATH
+$oldPath = [Environment]::GetEnvironmentVariable("Path", "User")
+$newPath = ($oldPath -split ';' | Where-Object { $_ -notlike "*CRDB*" }) -join ';'
+[Environment]::SetEnvironmentVariable("Path", $newPath, "User")
+
+# For system PATH (requires admin):
+$oldPath = [Environment]::GetEnvironmentVariable("Path", "Machine")
+$newPath = ($oldPath -split ';' | Where-Object { $_ -notlike "*CRDB*" }) -join ';'
+[Environment]::SetEnvironmentVariable("Path", $newPath, "Machine")
+```
+
+### Complete Cleanup Script (Windows PowerShell)
+```powershell
+# Run as Administrator for complete cleanup
+Write-Host "Cleaning up CRDB Zoho Converter..." -ForegroundColor Yellow
+
+# Remove from PATH
+$paths = @("User", "Machine")
+foreach ($scope in $paths) {
+    try {
+        $oldPath = [Environment]::GetEnvironmentVariable("Path", $scope)
+        $newPath = ($oldPath -split ';' | Where-Object { $_ -notlike "*CRDB*" -and $_ -notlike "*crdb*" }) -join ';'
+        [Environment]::SetEnvironmentVariable("Path", $newPath, $scope)
+        Write-Host "Cleaned PATH for $scope scope" -ForegroundColor Green
+    } catch {
+        Write-Host "Could not clean PATH for $scope scope (may require admin)" -ForegroundColor Red
+    }
+}
+
+# Remove installation directory
+$installPath = "C:\Program Files\CRDB Zoho Converter"
+if (Test-Path $installPath) {
+    Remove-Item -Recurse -Force $installPath
+    Write-Host "Removed installation directory" -ForegroundColor Green
+}
+
+# Remove user-specific files
+$userBin = "$env:USERPROFILE\bin\crdb-convert.exe"
+if (Test-Path $userBin) {
+    Remove-Item -Force $userBin
+    Write-Host "Removed user bin file" -ForegroundColor Green
+}
+
+# Remove build artifacts
+if (Test-Path "dist") {
+    Remove-Item -Recurse -Force "dist"
+    Write-Host "Removed build artifacts" -ForegroundColor Green
+}
+
+Write-Host "Cleanup complete!" -ForegroundColor Green
+```
+
+### Complete Cleanup Scripts
+
+**Windows PowerShell (Recommended):**
+```powershell
+# Run the comprehensive cleanup script
+.\cleanup-windows.ps1
+
+# Or with options:
+.\cleanup-windows.ps1 -Force -Verbose
+```
+
+**Linux/macOS:**
+```bash
+# Make executable and run
+chmod +x cleanup-linux.sh
+./cleanup-linux.sh
+
+# Or with options:
+./cleanup-linux.sh --force --verbose
+```
+
+**Manual Cleanup (if scripts fail):**
+```bash
+#!/bin/bash
+echo "Cleaning up CRDB Zoho Converter..."
+
+# Remove pipx installation
+if command -v pipx &> /dev/null; then
+    pipx uninstall crdb-zoho-converter 2>/dev/null
+    echo "Removed pipx installation"
+fi
+
+# Remove virtual environment
+if [ -d ".venv" ]; then
+    rm -rf .venv
+    echo "Removed virtual environment"
+fi
+
+# Remove build artifacts
+if [ -d "dist" ]; then
+    rm -rf dist
+    echo "Removed build artifacts"
+fi
+
+if [ -d "build" ]; then
+    rm -rf build
+    echo "Removed build directory"
+fi
+
+# Remove spec files
+rm -f *.spec
+echo "Removed spec files"
+
+echo "Cleanup complete!"
+```
+
 ### Setup (recommended with virtual environment)
 Windows (PowerShell):
 ```powershell
@@ -231,7 +400,7 @@ crdb-convert.exe --help
 cd installer
 .\build-installer.ps1
 
-# The installer will be created in dist/crdb-converter-setup-0.2.6.exe
+# The installer will be created in dist/crdb-converter-setup-0.2.7.exe
 # It automatically handles PATH modification and creates Start Menu shortcuts
 ```
 
@@ -296,7 +465,7 @@ Each release includes:
 - **Linux/macOS binaries** (`crdb-convert`) - standalone, no Python required
 - **Release notes** with changelog and installation instructions
 
-**Latest Release:** [v0.2.6](https://github.com/lkasdorf/CRDB_con_2025/releases/latest)
+**Latest Release:** [v0.2.7](https://github.com/lkasdorf/CRDB_con_2025/releases/latest)
 
 ### Professional Windows Installer
 For Windows users who prefer a traditional installer:
@@ -311,7 +480,7 @@ cd installer
 .\build-installer.ps1
 ```
 
-**Download:** [crdb-converter-setup-0.2.6.exe](https://github.com/lkasdorf/CRDB_con_2025/releases/latest)
+**Download:** [crdb-converter-setup-0.2.7.exe](https://github.com/lkasdorf/CRDB_con_2025/releases/latest)
 
 ### Add to PATH (so you can run `crdb-convert` from anywhere)
 
