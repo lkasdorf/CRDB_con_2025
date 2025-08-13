@@ -2,6 +2,12 @@
 
 Converts CRDB bank statements (XLS/XLSX) into the CSV format that can be imported into Zoho Books.
 
+### Why this tool exists
+
+**CRDB Bank Tanzania** is one of Tanzania's leading commercial banks, but unfortunately they don't provide APIs or direct integration interfaces for accounting software. However, they do allow customers to download bank statements from their web portal in XLS (Excel) format.
+
+This script bridges that gap by converting these downloaded XLS files into a CSV format that can be directly imported into **Zoho Books** as bank statements, eliminating the need for manual data entry and ensuring accurate financial records.
+
 ### Contents
 - `convert_crdb_to_zoho.py`: CLI script for conversion
 - `_inspect_xls.py`: small helper script to analyze new/changed XLS layouts
@@ -65,6 +71,18 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
+**⚠️ Windows PowerShell Execution Policy Issue:**
+If you encounter the error "cannot be loaded because running scripts is disabled on this system", run this command first:
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+**Alternative (if Execution Policy can't be changed):**
+Use the virtual environment directly without activation:
+```powershell
+.\.venv\Scripts\python.exe convert_crdb_to_zoho.py
+```
+
 Linux/macOS (bash/zsh):
 ```bash
 python3 -m venv .venv
@@ -87,6 +105,11 @@ Windows (PowerShell):
 4) Single-file conversion (optional):
 ```powershell
 .\.venv\Scripts\python.exe convert_crdb_to_zoho.py -i files\crdb_input.xls -o converted\crdb_input.csv
+```
+
+**💡 Pro Tip:** For batch processing of multiple XLS files from any directory:
+```powershell
+.\.venv\Scripts\python.exe convert_crdb_to_zoho.py --source "C:\path\to\xls\files" --dest "C:\path\to\output"
 ```
 
 Linux/macOS (bash/zsh):
@@ -145,6 +168,63 @@ pyinstaller --onefile --name crdb-inspect _inspect_xls.py
 ```
 The generated binaries are in `dist/` (`crdb-convert`, `crdb-inspect`). They are OS/arch specific.
 
+**Windows EXE Build (PowerShell):**
+```powershell
+# Install PyInstaller
+pip install pyinstaller
+
+# Build the executable
+pyinstaller --onefile --name crdb-convert convert_crdb_to_zoho.py
+
+# The EXE file will be created in dist/crdb-convert.exe
+```
+
+**Make Windows EXE available everywhere (add to PATH):**
+
+**Option 1: User-specific PATH (recommended)**
+```powershell
+# Create a bin directory in your user profile
+if (-Not (Test-Path "$env:USERPROFILE\bin")) { 
+    New-Item -ItemType Directory "$env:USERPROFILE\bin" | Out-Null 
+}
+
+# Copy the EXE to your bin directory
+Copy-Item "dist\crdb-convert.exe" "$env:USERPROFILE\bin\"
+
+# Add to PATH permanently
+setx PATH "$env:PATH;$env:USERPROFILE\bin"
+
+# Restart PowerShell or run this to update current session
+$env:PATH = "$env:PATH;$env:USERPROFILE\bin"
+
+# Test it
+crdb-convert.exe --help
+```
+
+**Option 2: System-wide PATH (requires admin)**
+```powershell
+# Copy to Windows System32 (requires admin rights)
+Copy-Item "dist\crdb-convert.exe" "C:\Windows\System32\"
+
+# Now available everywhere without PATH changes
+crdb-convert.exe --help
+```
+
+**Option 3: Custom directory and add to PATH**
+```powershell
+# Create a custom directory
+New-Item -ItemType Directory "C:\Tools\crdb-converter" -Force
+
+# Copy the EXE
+Copy-Item "dist\crdb-convert.exe" "C:\Tools\crdb-converter\"
+
+# Add to system PATH (requires admin)
+setx PATH "$env:PATH;C:\Tools\crdb-converter" /M
+
+# Test it
+crdb-convert.exe --help
+```
+
 After installing/building:
 - Show help: `crdb-convert --help`
 - See examples under "Usage" and "CLI options".
@@ -179,15 +259,34 @@ sudo chmod +x /usr/local/bin/crdb-inspect
 
 Windows (PowerShell):
 ```powershell
-if (-Not (Test-Path "$env:USERPROFILE\bin")) { New-Item -ItemType Directory $env:USERPROFILE\bin | Out-Null }
-Invoke-WebRequest -Uri https://github.com/lkasdorf/CRDB_con_2025/releases/download/vX.Y.Z/crdb-convert.exe -OutFile $env:USERPROFILE\bin\crdb-convert.exe
-# Make it available on PATH for future sessions:
+# Create bin directory in user profile
+if (-Not (Test-Path "$env:USERPROFILE\bin")) { 
+    New-Item -ItemType Directory "$env:USERPROFILE\bin" | Out-Null 
+}
+
+# Download the EXE from GitHub Releases
+Invoke-WebRequest -Uri https://github.com/lkasdorf/CRDB_con_2025/releases/download/vX.Y.Z/crdb-convert.exe -OutFile "$env:USERPROFILE\bin\crdb-convert.exe"
+
+# Make it available on PATH for future sessions
 setx PATH "$env:PATH;$env:USERPROFILE\bin"
+
+# Test it
 crdb-convert.exe --help
 
 # Optional inspector tool
-Invoke-WebRequest -Uri https://github.com/lkasdorf/CRDB_con_2025/releases/download/vX.Y.Z/crdb-inspect.exe -OutFile $env:USERPROFILE\bin\crdb-inspect.exe
+Invoke-WebRequest -Uri https://github.com/lkasdorf/CRDB_con_2025/releases/download/vX.Y.Z/crdb-inspect.exe -OutFile "$env:USERPROFILE\bin\crdb-inspect.exe"
 ```
+
+**💡 Pro Tip:** Replace `vX.Y.Z` with the actual release version (e.g., `v0.2.4`) from the GitHub Releases page.
+
+### GitHub Release Assets
+Each release includes:
+- **Source code** (`.tar.gz`, `.zip`)
+- **Windows EXE** (`crdb-convert.exe`) - standalone, no Python required
+- **Linux/macOS binaries** (`crdb-convert`) - standalone, no Python required
+- **Release notes** with changelog and installation instructions
+
+**Latest Release:** [v0.2.4](https://github.com/lkasdorf/CRDB_con_2025/releases/latest)
 
 ### Add to PATH (so you can run `crdb-convert` from anywhere)
 
