@@ -164,6 +164,12 @@ def _select_column_with_mapping(columns: List[str], mapping_values: List[str], f
     # Fallback heuristic
     return fallback_picker()
 
+def _coerce_to_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    s = str(value).strip().lower()
+    return s in {"1", "true", "yes", "on"}
+
 
 def _read_excel_with_fallback(input_path: Path, engine_choice: str, sheet: Any = None) -> pd.DataFrame:
     suffix = input_path.suffix.lower()
@@ -485,6 +491,7 @@ def convert(
             output_path,
             sep=delimiter,
             index=False,
+            header=not csv_no_header,
             encoding=csv_encoding,
             quotechar=csv_quotechar,
         )
@@ -598,7 +605,8 @@ def main() -> None:
     log_path = Path(env_get("log", str(log_path)))
     log_path.parent.mkdir(parents=True, exist_ok=True)
 
-    level = logging.DEBUG if args.trace or env_get("trace", str(cfg_get("trace", "")).lower() in {"1", "true", "yes"}) else logging.INFO
+    trace_enabled = args.trace or _coerce_to_bool(env_get("trace", cfg_get("trace", "")))
+    level = logging.DEBUG if trace_enabled else logging.INFO
 
     handlers: List[logging.Handler] = []
     if args.log_rotate_size and args.log_rotate_size > 0:
@@ -658,6 +666,12 @@ def main() -> None:
             logging.info("Skip (exists): %s -> %s", args.input, output)
             return
         try:
+            summary_target = None
+            if args.summary:
+                if args.summary.is_dir() or args.summary.suffix == "":
+                    summary_target = args.summary / f"{args.input.stem}.summary.json"
+                else:
+                    summary_target = args.summary
             before, after, issues = convert(
                 args.input,
                 output,
@@ -679,7 +693,7 @@ def main() -> None:
                 csv_quotechar=args.csv_quotechar,
                 csv_no_header=args.csv_no_header,
                 redact=args.redact,
-                summary_path=args.summary,
+                summary_path=summary_target,
             )
             logging.info(
                 "Converted: %s -> %s | rows_in=%s rows_out=%s warnings=%s",
@@ -723,6 +737,12 @@ def main() -> None:
             skipped_count += 1
             continue
         try:
+            summary_target = None
+            if args.summary:
+                if args.summary.is_dir() or args.summary.suffix == "":
+                    summary_target = args.summary / f"{src.stem}.summary.json"
+                else:
+                    summary_target = args.summary
             before, after, issues = convert(
                 src,
                 dst,
@@ -744,7 +764,7 @@ def main() -> None:
                 csv_quotechar=args.csv_quotechar,
                 csv_no_header=args.csv_no_header,
                 redact=args.redact,
-                summary_path=(args.summary.parent / f"{src.stem}.summary.json") if (args.summary and args.summary.is_dir()) else args.summary,
+                summary_path=summary_target,
             )
             logging.info(
                 "Converted: %s -> %s | rows_in=%s rows_out=%s warnings=%s",
