@@ -34,10 +34,16 @@ class MissingColumnsError(ConversionError):
 def get_package_version() -> str:
     if _pkg_version is None:
         return "unknown"
+
     try:
         return _pkg_version("crdb-zoho-converter")
     except Exception:
         return "unknown"
+
+
+# Maximum length for the "Reference Number" CSV field. Keep slightly below 100
+# to be conservative with external consumers that might enforce a 100-char limit.
+MAX_REFERENCE_LEN = 99
 
 
 def find_transaction_header_index(raw_df: pd.DataFrame, max_scan_rows: int = 500) -> int | None:
@@ -308,6 +314,8 @@ def convert(
         "negative_debit": 0,
         "negative_credit": 0,
         "date_missing_with_amount": 0,
+        # Count rows where the Reference Number had to be truncated to fit limits
+        "reference_truncated": 0,
     }
     samples: Dict[str, List[str]] = {k: [] for k in issues.keys()}
 
@@ -400,7 +408,17 @@ def convert(
         deposits.append(parsed_credit)
         payees.append("")
         descriptions.append("Transfer")
-        ref_numbers.append(src_detail)
+        # Enforce maximum length for Reference Number
+        ref_val = str(src_detail or "")
+        if len(ref_val) > MAX_REFERENCE_LEN:
+            issues["reference_truncated"] += 1
+            if len(samples["reference_truncated"]) < log_sample_limit:
+                # store a truncated sample showing it was cut
+                samples["reference_truncated"].append(
+                    f"row {header_idx + 1 + 1 + idx}: '{ref_val[:MAX_REFERENCE_LEN]}...'"
+                )
+            ref_val = ref_val[:MAX_REFERENCE_LEN]
+        ref_numbers.append(ref_val)
 
         if trace and idx < trace_max_rows:
             logging.debug(
